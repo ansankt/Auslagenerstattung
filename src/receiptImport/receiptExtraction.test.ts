@@ -147,7 +147,7 @@ describe('extractReceiptData', () => {
 
   it('handles OCR text from scanned Fristo receipts', () => {
     const result = extractReceiptData(`
-      FRISTO
+      ©.” \\FRISTO
       Starnberger Str. 38a
       82131 Gauting
       SUMME : EUR 46,01
@@ -164,7 +164,7 @@ describe('extractReceiptData', () => {
 
   it('handles OCR text from scanned bakery receipts with inline VAT summaries', () => {
     const result = extractReceiptData(`
-      Backstube Wünsche
+      Aackstubel | } Wünsche
       Summe: 39,90 €
       MwSt BRUTTO NETT
       7,00% 2,61 € 39,90 € 37,29 €
@@ -179,7 +179,7 @@ describe('extractReceiptData', () => {
 
   it('handles OCR text from scanned Lidl receipts', () => {
     const result = extractReceiptData(`
-      Lidl
+      wf LIDL
       zu zahlen 23,82
       Karte 23,82
       MHSTX MWST + Netto = Brutto

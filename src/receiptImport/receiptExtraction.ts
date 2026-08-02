@@ -69,6 +69,12 @@ const buildNormalizedLines = (rawText: string): string[] => {
 
 const normalizeForSearch = (value: string): string => value.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue');
 
+const cleanVendorName = (value: string): string =>
+  value
+    .replace(/^[^A-Za-zÄÖÜäöüß]+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 const parseDate = (value: string): string | null => {
   const match = value.match(datePattern);
 
@@ -132,11 +138,24 @@ const extractDate = (lines: string[], rules: ReceiptExtractionRules): ReceiptExt
 };
 
 const extractVendor = (lines: string[], rules: ReceiptExtractionRules): ReceiptExtractionCandidate<string> | null => {
+  const fullText = normalizeForSearch(lines.join('\n'));
+  const knownVendor = rules.knownVendors.find((vendor) =>
+    vendor.keywords.some((keyword) => fullText.includes(normalizeForSearch(keyword))),
+  );
+
+  if (knownVendor) {
+    return {
+      value: knownVendor.name,
+      confidence: 0.9,
+      reason: `Lieferant über bekanntes Muster erkannt: "${knownVendor.name}"`,
+    };
+  }
+
   const keywordVendor = lines.find((line) => /^verkauft von\s+.+/i.test(line));
 
   if (keywordVendor) {
     return {
-      value: keywordVendor.replace(/^verkauft von\s+/i, '').trim(),
+      value: cleanVendorName(keywordVendor.replace(/^verkauft von\s+/i, '')),
       confidence: 0.86,
       reason: `Lieferant aus "Verkauft von" erkannt: "${keywordVendor}"`,
     };
@@ -147,7 +166,7 @@ const extractVendor = (lines: string[], rules: ReceiptExtractionRules): ReceiptE
 
   if (senderLine) {
     return {
-      value: senderLine,
+      value: cleanVendorName(senderLine),
       confidence: 0.82,
       reason: `Lieferant aus Absender-Block erkannt: "${senderLine}"`,
     };
@@ -167,7 +186,7 @@ const extractVendor = (lines: string[], rules: ReceiptExtractionRules): ReceiptE
   }
 
   return {
-    value: vendorLine,
+    value: cleanVendorName(vendorLine),
     confidence: 0.58,
     reason: `Lieferant aus den oberen ${rules.vendorLines.preferTopLines} Zeilen geschätzt.`,
   };

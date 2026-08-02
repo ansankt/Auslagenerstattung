@@ -1,5 +1,9 @@
 export interface ReceiptExtractionRules {
   dateKeywords: string[];
+  knownVendors: Array<{
+    name: string;
+    keywords: string[];
+  }>;
   vendorLines: {
     preferTopLines: number;
     ignoreKeywords: string[];
@@ -14,6 +18,12 @@ export interface ReceiptExtractionRules {
 
 export const defaultReceiptRules: ReceiptExtractionRules = {
   dateKeywords: ['rechnungsdatum', 'datum', 'belegdatum', 'leistungsdatum'],
+  knownVendors: [
+    { name: 'FRISTO', keywords: ['fristo'] },
+    { name: 'Backstube Wünsche', keywords: ['backstube wuensche', 'backstube wünsche', 'wuensche', 'wünsche'] },
+    { name: 'LIDL', keywords: ['lidl'] },
+    { name: 'EDEKA', keywords: ['edeka'] },
+  ],
   vendorLines: {
     preferTopLines: 8,
     ignoreKeywords: [
