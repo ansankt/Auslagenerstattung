@@ -269,6 +269,16 @@ h2 {
   justify-self: start;
 }
 
+.multi-receipt-import {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.multi-receipt-import > .secondary-button {
+  justify-self: start;
+}
+
 .receipt-status {
   display: grid;
   gap: 8px;
@@ -290,6 +300,59 @@ h2 {
   background: rgba(93, 166, 92, 0.08);
 }
 
+.multi-receipt-preview {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(225, 46, 46, 0.24);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(240, 189, 81, 0.12);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.multi-receipt-table {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.multi-receipt-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.multi-receipt-row .field {
+  min-width: 0;
+}
+
+.multi-receipt-row .amount-field input {
+  font-variant-numeric: tabular-nums;
+}
+
+.multi-receipt-remove-button {
+  align-self: end;
+  justify-self: start;
+  min-width: 108px;
+}
+
+.multi-receipt-row legend {
+  max-width: 100%;
+  padding: 0 6px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .receipt-preview-heading,
 .receipt-preview-actions {
   display: flex;
@@ -308,6 +371,27 @@ h2 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.receipt-vat-check {
+  grid-column: 1 / -1;
+  margin: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.receipt-vat-check.is-ok {
+  border: 1px solid rgba(93, 166, 92, 0.35);
+  background: rgba(93, 166, 92, 0.11);
+  color: #2f6f2f;
+}
+
+.receipt-vat-check.is-warning {
+  border: 1px solid rgba(225, 46, 46, 0.24);
+  background: rgba(225, 46, 46, 0.08);
+  color: var(--kult-red-dark);
 }
 
 .receipt-reasons {
@@ -443,6 +527,10 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .multi-receipt-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .receipt-preview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -466,6 +554,7 @@ h2 {
 
   .field-grid,
   .expense-row,
+  .multi-receipt-row,
   .segmented-control,
   .receipt-preview-grid {
     grid-template-columns: 1fr;
