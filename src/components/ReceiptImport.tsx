@@ -74,8 +74,9 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
       const extractedResult = extractReceiptData(rawText);
       setResult(extractedResult);
       setDraft(createDraftFromResult(extractedResult, file.name));
-    } catch {
-      setError('Der Beleg konnte nicht erkannt werden. Bitte ein gut lesbares Bild oder PDF verwenden.');
+    } catch (ocrError) {
+      const errorMessage = ocrError instanceof Error ? ` (${ocrError.message})` : '';
+      setError(`Der Beleg konnte nicht erkannt werden. Bitte ein gut lesbares Bild oder PDF verwenden.${errorMessage}`);
     } finally {
       setIsRecognizing(false);
       event.target.value = '';

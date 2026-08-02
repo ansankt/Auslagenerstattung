@@ -51,4 +51,161 @@ describe('extractReceiptData', () => {
     expect(result.vat?.value).toBe(0.75);
     expect(result.gross?.value).toBe(11.12);
   });
+
+  it('handles invoices with sender blocks and integer Euro amounts', () => {
+    const result = extractReceiptData(`
+      Rechnung.
+      Absender:
+      Ella Raatikainen, Jonathan Olowookere – GbR
+      Rechnungsdatum: 30.07.26
+      Rechnungsbetrag
+      760
+      €
+      Der Rechnungsbetrag beinhaltet keine Mehrwertsteuer (§19 UstG).
+    `);
+
+    expect(result.date?.value).toBe('2026-07-30');
+    expect(result.vendor?.value).toBe('Ella Raatikainen, Jonathan Olowookere – GbR');
+    expect(result.gross?.value).toBe(760);
+  });
+
+  it('handles Amazon-style invoice summaries', () => {
+    const result = extractReceiptData(`
+      Rechnung
+      USt. %
+      Zwischensumme
+      (ohne USt.)
+      USt.
+      7%
+      50,27 €
+      3,52 €
+      Gesamtpreis
+      53,79 €
+      Verkauft von One Solution GmbH
+      Rechnungsdatum
+      /Lieferdatum
+      15 Juli 2026
+      Zahlbetrag
+      53,79 €
+    `);
+
+    expect(result.date?.value).toBe('2026-07-15');
+    expect(result.vendor?.value).toBe('One Solution GmbH');
+    expect(result.net?.value).toBe(50.27);
+    expect(result.vat?.value).toBe(3.52);
+    expect(result.gross?.value).toBe(53.79);
+  });
+
+  it('handles multi-page supplier invoice totals', () => {
+    const result = extractReceiptData(`
+      Früchte Feldbrach GmbH - Karwendelstr. 13 - 82024 Taufkirchen
+      Rechnungsdatum: 25.07.2026
+      R E C H N U N G
+      Netto Gesamt €:
+      729,64
+      Zwischensumme €:
+      729,64
+      USt. 7%:
+      666,98
+      46,69
+      USt. 19%:
+      62,66
+      11,91
+      Endbetrag €:
+      788,24
+    `);
+
+    expect(result.date?.value).toBe('2026-07-25');
+    expect(result.vendor?.value).toBe('Früchte Feldbrach GmbH - Karwendelstr. 13 - 82024 Taufkirchen');
+    expect(result.net?.value).toBe(729.64);
+    expect(result.vat?.value).toBe(58.6);
+    expect(result.gross?.value).toBe(788.24);
+  });
+
+  it('derives zero VAT for reverse-charge style invoices', () => {
+    const result = extractReceiptData(`
+      Rechnung
+      Rechnungsnummer: 5654334084
+      31. Juli 2026
+      Google Cloud
+      Zwischensumme in EUR
+      4,13
+      €
+      Umsatzsteuer (0%)
+      0,00
+      €
+      Gesamtsumme in EUR
+      4,13
+      €
+    `);
+
+    expect(result.date?.value).toBe('2026-07-31');
+    expect(result.net?.value).toBe(4.13);
+    expect(result.vat?.value).toBe(0);
+    expect(result.gross?.value).toBe(4.13);
+  });
+
+  it('handles OCR text from scanned Fristo receipts', () => {
+    const result = extractReceiptData(`
+      FRISTO
+      Starnberger Str. 38a
+      82131 Gauting
+      SUMME : EUR 46,01
+      Kartenzahlung E 46.01
+      A. 19,00 38,66 7,55 46,01
+      31.07.26 14:57 Uhr
+    `);
+
+    expect(result.vendor?.value).toBe('FRISTO');
+    expect(result.date?.value).toBe('2026-07-31');
+    expect(result.vat?.value).toBe(7.55);
+    expect(result.gross?.value).toBe(46.01);
+  });
+
+  it('handles OCR text from scanned bakery receipts with inline VAT summaries', () => {
+    const result = extractReceiptData(`
+      Backstube Wünsche
+      Summe: 39,90 €
+      MwSt BRUTTO NETT
+      7,00% 2,61 € 39,90 € 37,29 €
+      31.07.2026 16:58:30
+    `);
+
+    expect(result.vendor?.value).toBe('Backstube Wünsche');
+    expect(result.date?.value).toBe('2026-07-31');
+    expect(result.vat?.value).toBe(2.61);
+    expect(result.gross?.value).toBe(39.9);
+  });
+
+  it('handles OCR text from scanned Lidl receipts', () => {
+    const result = extractReceiptData(`
+      Lidl
+      zu zahlen 23,82
+      Karte 23,82
+      MHSTX MWST + Netto = Brutto
+      A 7% 1,56 22,26 23.82
+      31.07.2026 15:47
+    `);
+
+    expect(result.date?.value).toBe('2026-07-31');
+    expect(result.vat?.value).toBe(1.56);
+    expect(result.gross?.value).toBe(23.82);
+  });
+
+  it('handles OCR text from scanned Edeka receipts with two tax rows', () => {
+    const result = extractReceiptData(`
+      EDEKA
+      SUMME € 23,29
+      EC-Cash £ 23,29
+      Datum 31.07.26 16:00 Uhr
+      MWST NETTO MwSt UMSATZ
+      A 7% 21,49 1,50 22,99
+      BR 19% 0,25 0,05 0,30
+    `);
+
+    expect(result.vendor?.value).toBe('EDEKA');
+    expect(result.date?.value).toBe('2026-07-31');
+    expect(result.vat?.value).toBe(1.55);
+    expect(result.gross?.value).toBe(23.29);
+  });
 });

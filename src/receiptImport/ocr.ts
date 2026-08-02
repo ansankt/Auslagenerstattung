@@ -1,10 +1,12 @@
 import { createWorker } from 'tesseract.js';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const acceptedImageTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/tiff', 'image/bmp'];
+const minimumEmbeddedTextLength = 80;
+const maxProcessedCanvasSide = 2600;
 
 const loadImage = (file: File): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -65,7 +67,7 @@ const preprocessCanvas = (sourceCanvas: HTMLCanvasElement): HTMLCanvasElement =>
   const bounds = findContentBounds(sourceContext.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height));
   const cropWidth = bounds.right - bounds.left;
   const cropHeight = bounds.bottom - bounds.top;
-  const scale = 3;
+  const scale = Math.min(3, maxProcessedCanvasSide / Math.max(cropWidth, cropHeight));
   const outputCanvas = document.createElement('canvas');
   const outputContext = outputCanvas.getContext('2d');
 
@@ -73,8 +75,8 @@ const preprocessCanvas = (sourceCanvas: HTMLCanvasElement): HTMLCanvasElement =>
     throw new Error('Canvas konnte nicht erstellt werden.');
   }
 
-  outputCanvas.width = cropWidth * scale;
-  outputCanvas.height = cropHeight * scale;
+  outputCanvas.width = Math.max(1, Math.round(cropWidth * scale));
+  outputCanvas.height = Math.max(1, Math.round(cropHeight * scale));
   outputContext.drawImage(
     sourceCanvas,
     bounds.left,
@@ -139,6 +141,25 @@ const renderPdfFirstPage = async (file: File): Promise<HTMLCanvasElement> => {
   return preprocessCanvas(canvas);
 };
 
+const extractPdfText = async (file: File): Promise<string> => {
+  const data = await file.arrayBuffer();
+  const pdfDocument = await getDocument({ data }).promise;
+  const pageTexts: string[] = [];
+
+  for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
+    const page = await pdfDocument.getPage(pageNumber);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item) => ('str' in item ? item.str : ''))
+      .filter(Boolean)
+      .join('\n');
+
+    pageTexts.push(pageText);
+  }
+
+  return pageTexts.join('\n');
+};
+
 const getOcrSource = async (file: File): Promise<File | HTMLCanvasElement> => {
   if (acceptedImageTypes.includes(file.type)) {
     return preprocessCanvas(await renderImage(file));
@@ -155,6 +176,14 @@ export const recognizeReceiptText = async (
   file: File,
   onProgress?: (progress: number) => void,
 ): Promise<string> => {
+  if (file.type === 'application/pdf') {
+    const embeddedText = await extractPdfText(file).catch(() => '');
+
+    if (embeddedText.trim().length >= minimumEmbeddedTextLength) {
+      return embeddedText;
+    }
+  }
+
   const source = await getOcrSource(file);
   const worker = await createWorker('deu+eng', 1, {
     langPath: '/tessdata',

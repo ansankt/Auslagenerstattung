@@ -57,7 +57,7 @@ src/
 
 ## Belegimport
 
-Version 1.1 unterstützt einen lokalen Einzelimport pro Ausgabenzeile. Über `Beleg erkennen` kann ein Bild oder eine PDF-Datei ausgewählt werden. Die Datei wird im Browser verarbeitet, per OCR gelesen und anschließend regelbasiert ausgewertet. Erkannte Werte werden zunächst in einer Vorschau angezeigt und können korrigiert werden. Erst `Erkannte Werte übernehmen` schreibt die Daten in das Formular.
+Version 1.1 unterstützt einen lokalen Einzelimport pro Ausgabenzeile. Über `Beleg erkennen` kann ein Bild oder eine PDF-Datei ausgewählt werden. Bei maschinenlesbaren PDFs wird zuerst der eingebettete Text aller Seiten verwendet. Wenn kein Text vorhanden ist, wird die erste PDF-Seite beziehungsweise das Bild lokal zugeschnitten, kontrastiert, auf eine stabile OCR-Größe begrenzt und anschließend per OCR verarbeitet. Erkannte Werte werden zunächst in einer Vorschau angezeigt und können korrigiert werden. Erst `Erkannte Werte übernehmen` schreibt die Daten in das Formular.
 
 Erkannt werden:
 
@@ -92,7 +92,7 @@ Der Downloadname folgt dem Schema `Auslagenerstattung_[Name]_[Datum].pdf`, zum B
 ## Bekannte Einschränkungen
 
 - Die PDF-Tabelle ist durch die Vorlage auf zehn Ausgabenzeilen begrenzt. Sehr lange Listen benötigen später Pagination oder eine mehrseitige Vorlage.
-- Der Belegimport verarbeitet in Version 1.1 jeweils einen Beleg. Mehrfachimport und ZIP-Export sind für Version 2.0 vorgesehen.
+- Der Belegimport verarbeitet in Version 1.1 jeweils einen Beleg. Mehrfachimport, mehrseitige Scan-PDFs mit mehreren getrennten Belegen und ZIP-Export sind für Version 2.0 vorgesehen.
 - Die OCR läuft lokal im Browser und lädt die mitgelieferten Sprachdaten aus `public/tessdata`.
 
 ## Lizenz
