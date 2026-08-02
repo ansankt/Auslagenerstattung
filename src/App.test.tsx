@@ -16,6 +16,12 @@ describe('App', () => {
     expect(screen.getByText('Ausgabe 2')).toBeInTheDocument();
   });
 
+  it('offers receipt recognition for expenses', () => {
+    render(<App />);
+
+    expect(screen.getByRole('button', { name: 'Beleg erkennen' })).toBeInTheDocument();
+  });
+
   it('shows bank fields when bank transfer is selected', async () => {
     render(<App />);
 

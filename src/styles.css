@@ -35,7 +35,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -51,6 +52,17 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 input {
@@ -72,6 +84,16 @@ input:focus {
 input[aria-invalid="true"] {
   border-color: var(--kult-red);
   background: #fff1f1;
+}
+
+textarea {
+  width: 100%;
+  min-height: 140px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface-strong);
+  color: var(--text);
 }
 
 .app-shell {
@@ -235,6 +257,82 @@ h2 {
   color: #941b1b;
 }
 
+.receipt-import {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.receipt-import-button {
+  justify-self: start;
+}
+
+.receipt-status {
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.receipt-status progress {
+  width: min(320px, 100%);
+  accent-color: var(--kult-red);
+}
+
+.receipt-preview {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(93, 166, 92, 0.35);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(93, 166, 92, 0.08);
+}
+
+.receipt-preview-heading,
+.receipt-preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receipt-preview-heading span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.receipt-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.receipt-reasons {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.receipt-reasons summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.receipt-reasons ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.receipt-raw-text {
+  margin-top: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.85rem;
+}
+
 .full-width-button {
   width: 100%;
 }
@@ -345,6 +443,10 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .receipt-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .wide-field {
     grid-column: 1 / -1;
   }
@@ -364,8 +466,14 @@ h2 {
 
   .field-grid,
   .expense-row,
-  .segmented-control {
+  .segmented-control,
+  .receipt-preview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .receipt-preview-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .panel {

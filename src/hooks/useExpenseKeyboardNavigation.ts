@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import type { KeyboardEvent } from 'react';
 
 export const expenseKeyboardColumns = ['date', 'receipt', 'description', 'net', 'vat'] as const;
 
@@ -95,7 +96,7 @@ export const useExpenseKeyboardNavigation = ({
   );
 
   const handleKeyboardNavigation = useCallback(
-    (event: React.KeyboardEvent<ExpenseInputElement>, row: number, column: ExpenseKeyboardColumn): void => {
+    (event: KeyboardEvent<ExpenseInputElement>, row: number, column: ExpenseKeyboardColumn): void => {
       const input = event.currentTarget;
       const currentColumnIndex = getColumnIndex(column);
       let nextPosition: FieldPosition | null = null;
