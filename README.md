@@ -10,6 +10,8 @@ Eine vollständig clientseitige React-Anwendung zur Erfassung und Erstellung von
 - React Hook Form
 - Zod
 - pdf-lib
+- tesseract.js
+- PDF.js
 - Vitest und Testing Library
 - ESLint und Prettier
 
@@ -47,10 +49,25 @@ Abgedeckt sind Berechnungen, Summen, IBAN-Validierung, Währungsformatierung und
 src/
   components/        Kleine Präsentations- und Formularabschnitte
   pdf/               Clientseitige PDF-Erzeugung
+  receiptImport/     Lokale OCR und regelbasierte Belegerkennung
   types/             Zentrales Datenmodell
   utils/             Berechnungen, IBAN, Währung und Local Storage
   validation/        Formularvalidierung
 ```
+
+## Belegimport
+
+Version 1.1 unterstützt einen lokalen Einzelimport pro Ausgabenzeile. Über `Beleg erkennen` kann ein Bild oder eine PDF-Datei ausgewählt werden. Die Datei wird im Browser verarbeitet, per OCR gelesen und anschließend regelbasiert ausgewertet. Erkannte Werte werden zunächst in einer Vorschau angezeigt und können korrigiert werden. Erst `Erkannte Werte übernehmen` schreibt die Daten in das Formular.
+
+Erkannt werden:
+
+- Rechnungsdatum
+- Lieferant / Belegname
+- Nettobetrag
+- Mehrwertsteuerbetrag
+- Bruttobetrag
+
+Die Standardregeln liegen in `src/receiptImport/receiptRules.ts`. Dort können Stichwörter für Datum, Netto, MwSt., Brutto sowie bevorzugte MwSt.-Sätze angepasst werden. Die eigentliche Extraktion ist in `src/receiptImport/receiptExtraction.ts` testbar gekapselt.
 
 ## Datenstruktur
 
@@ -65,6 +82,7 @@ Der Downloadname folgt dem Schema `Auslagenerstattung_[Name]_[Datum].pdf`, zum B
 ## Architekturentscheidungen
 
 - Business-Logik liegt außerhalb der React-Komponenten in `src/utils`.
+- OCR-Regeln und Belegextraktion liegen außerhalb der React-Komponenten in `src/receiptImport`.
 - Formularstatus bleibt lokal über React Hook Form, `useState`, `useMemo` und `useEffect`.
 - Es wird kein globales State-Management eingesetzt.
 - Änderungen werden automatisch im Local Storage gespeichert.
@@ -74,6 +92,8 @@ Der Downloadname folgt dem Schema `Auslagenerstattung_[Name]_[Datum].pdf`, zum B
 ## Bekannte Einschränkungen
 
 - Die PDF-Tabelle ist durch die Vorlage auf zehn Ausgabenzeilen begrenzt. Sehr lange Listen benötigen später Pagination oder eine mehrseitige Vorlage.
+- Der Belegimport verarbeitet in Version 1.1 jeweils einen Beleg. Mehrfachimport und ZIP-Export sind für Version 2.0 vorgesehen.
+- Die OCR läuft lokal im Browser, benötigt für die OCR-Sprachdaten aber je nach Tesseract.js-Konfiguration beim ersten Einsatz Netzwerkzugriff und Cache.
 
 ## Lizenz
 

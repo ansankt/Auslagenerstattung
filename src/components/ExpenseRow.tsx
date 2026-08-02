@@ -1,16 +1,19 @@
 import { useMemo } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import type { ExpenseKeyboardColumn } from '../hooks/useExpenseKeyboardNavigation';
 import type { ExpenseReport } from '../types/expense';
 import { calculateGross } from '../utils/calculations';
-import { formatCurrency } from '../utils/currency';
+import { formatCurrency, parseNumberInput } from '../utils/currency';
+import { ReceiptImport } from './ReceiptImport';
+import type { ReceiptImportDraft } from './ReceiptImport';
 import { FieldError } from './shared/FieldError';
 
 interface ExpenseRowProps {
   index: number;
   canRemove: boolean;
   onKeyboardNavigation: (
-    event: React.KeyboardEvent<HTMLInputElement>,
+    event: KeyboardEvent<HTMLInputElement>,
     row: number,
     column: ExpenseKeyboardColumn,
   ) => void;
@@ -28,6 +31,7 @@ export const ExpenseRow = ({
   const {
     register,
     control,
+    setValue,
     formState: { errors },
   } = useFormContext<ExpenseReport>();
   const expense = useWatch({ control, name: `expenses.${index}` });
@@ -38,6 +42,14 @@ export const ExpenseRow = ({
   const descriptionField = register(`expenses.${index}.description`);
   const netField = register(`expenses.${index}.net`, { valueAsNumber: true });
   const vatField = register(`expenses.${index}.vat`, { valueAsNumber: true });
+
+  const handleApplyReceiptData = (draft: ReceiptImportDraft): void => {
+    setValue(`expenses.${index}.date`, draft.date, { shouldDirty: true, shouldValidate: true });
+    setValue(`expenses.${index}.receipt`, draft.receipt, { shouldDirty: true, shouldValidate: true });
+    setValue(`expenses.${index}.description`, draft.description, { shouldDirty: true, shouldValidate: true });
+    setValue(`expenses.${index}.net`, parseNumberInput(draft.net), { shouldDirty: true, shouldValidate: true });
+    setValue(`expenses.${index}.vat`, parseNumberInput(draft.vat), { shouldDirty: true, shouldValidate: true });
+  };
 
   return (
     <fieldset className="expense-row">
@@ -119,6 +131,7 @@ export const ExpenseRow = ({
       <button className="danger-button" type="button" onClick={onRemove} disabled={!canRemove}>
         Entfernen
       </button>
+      <ReceiptImport onApply={handleApplyReceiptData} />
     </fieldset>
   );
 };
