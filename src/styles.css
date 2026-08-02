@@ -35,7 +35,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -83,6 +84,16 @@ input:focus {
 input[aria-invalid="true"] {
   border-color: var(--kult-red);
   background: #fff1f1;
+}
+
+textarea {
+  width: 100%;
+  min-height: 140px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface-strong);
+  color: var(--text);
 }
 
 .app-shell {
@@ -314,6 +325,12 @@ h2 {
   gap: 6px;
   margin: 10px 0 0;
   padding-left: 18px;
+}
+
+.receipt-raw-text {
+  margin-top: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.85rem;
 }
 
 .full-width-button {

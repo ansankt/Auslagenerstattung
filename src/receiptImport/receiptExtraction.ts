@@ -146,6 +146,44 @@ const findAmountByKeyword = (
   return null;
 };
 
+const findVatAmount = (lines: string[], keywords: string[]): ReceiptExtractionCandidate<number> | null => {
+  const vatAmounts = lines
+    .filter((line) => includesKeyword(line, keywords))
+    .map((line) => {
+      const normalizedLine = normalizeForSearch(line);
+      const keywordIndex = keywords
+        .map((keyword) => normalizedLine.indexOf(normalizeForSearch(keyword)))
+        .filter((index) => index >= 0)
+        .sort((a, b) => a - b)[0];
+      const textAfterKeyword = keywordIndex === undefined ? line : line.slice(keywordIndex);
+      const amounts = collectAmountCandidates([textAfterKeyword]);
+      const amount = amounts[amounts.length - 1];
+
+      return amount ? { ...amount, line } : null;
+    })
+    .filter((candidate): candidate is AmountCandidate => candidate !== null);
+
+  if (vatAmounts.length === 0) {
+    return null;
+  }
+
+  if (vatAmounts.length === 1) {
+    const [vatAmount] = vatAmounts;
+
+    return {
+      value: vatAmount.amount,
+      confidence: 0.82,
+      reason: `MwSt. aus Zeile mit passendem Stichwort erkannt: "${vatAmount.line}"`,
+    };
+  }
+
+  return {
+    value: roundMoney(vatAmounts.reduce((sum, candidate) => sum + candidate.amount, 0)),
+    confidence: 0.78,
+    reason: `Mehrere MwSt.-Zeilen erkannt und addiert: ${vatAmounts.map((candidate) => `"${candidate.line}"`).join(', ')}`,
+  };
+};
+
 const getHighestAmount = (lines: string[]): ReceiptExtractionCandidate<number> | null => {
   const amountCandidates = collectAmountCandidates(lines)
     .filter((candidate) => candidate.amount > 0)
@@ -226,7 +264,7 @@ export const extractReceiptData = (
   const date = extractDate(lines, rules);
   const vendor = extractVendor(lines, rules);
   const net = findAmountByKeyword(lines, rules.amountKeywords.net, 'Netto');
-  const vat = findAmountByKeyword(lines, rules.amountKeywords.vat, 'MwSt.');
+  const vat = findVatAmount(lines, rules.amountKeywords.vat);
   const gross = findAmountByKeyword(lines, rules.amountKeywords.gross, 'Brutto') ?? getHighestAmount(lines);
   const amounts = deriveMissingAmounts(net, vat, gross, rules);
 

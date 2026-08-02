@@ -30,4 +30,25 @@ describe('extractReceiptData', () => {
     expect(result.vat?.value).toBe(19);
     expect(result.gross?.value).toBe(119);
   });
+
+  it('handles supermarket receipts with multiple VAT lines', () => {
+    const result = extractReceiptData(`
+      TRIVANOVIC SUPERMARKT
+      Hauptplatz. 4
+      82131 Gauting
+      Summe 11,12 €
+      Bar 11,12 €
+      Netto-Umsatz 10,37 €
+      7,00% MwSt. 0,71 €
+      19,00% MwSt. 0,04 €
+      Brutto-Umsatz 11,12 €
+      Datum : 18.07.2026 Zeit : 15:05
+    `);
+
+    expect(result.date?.value).toBe('2026-07-18');
+    expect(result.vendor?.value).toBe('TRIVANOVIC SUPERMARKT');
+    expect(result.net?.value).toBe(10.37);
+    expect(result.vat?.value).toBe(0.75);
+    expect(result.gross?.value).toBe(11.12);
+  });
 });

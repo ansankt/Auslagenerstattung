@@ -93,7 +93,7 @@ Der Downloadname folgt dem Schema `Auslagenerstattung_[Name]_[Datum].pdf`, zum B
 
 - Die PDF-Tabelle ist durch die Vorlage auf zehn Ausgabenzeilen begrenzt. Sehr lange Listen benötigen später Pagination oder eine mehrseitige Vorlage.
 - Der Belegimport verarbeitet in Version 1.1 jeweils einen Beleg. Mehrfachimport und ZIP-Export sind für Version 2.0 vorgesehen.
-- Die OCR läuft lokal im Browser, benötigt für die OCR-Sprachdaten aber je nach Tesseract.js-Konfiguration beim ersten Einsatz Netzwerkzugriff und Cache.
+- Die OCR läuft lokal im Browser und lädt die mitgelieferten Sprachdaten aus `public/tessdata`.
 
 ## Lizenz
 

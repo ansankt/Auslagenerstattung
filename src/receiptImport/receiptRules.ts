@@ -23,5 +23,5 @@ export const defaultReceiptRules: ReceiptExtractionRules = {
     vat: ['mwst', 'ust', 'umsatzsteuer', 'mehrwertsteuer'],
     gross: ['brutto', 'gesamtbetrag', 'gesamt', 'summe', 'endbetrag', 'zu zahlen'],
   },
-  vatRates: [7, 19],
+  vatRates: [0, 7, 19],
 };

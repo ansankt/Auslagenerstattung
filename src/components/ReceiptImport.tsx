@@ -165,13 +165,18 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
 
           <details className="receipt-reasons">
             <summary>Erkennung anzeigen</summary>
-            <ul>
-              {[result.date, result.vendor, result.net, result.vat, result.gross]
-                .filter((candidate) => candidate !== null)
-                .map((candidate) => (
-                  <li key={candidate.reason}>{candidate.reason}</li>
-                ))}
-            </ul>
+            {[result.date, result.vendor, result.net, result.vat, result.gross].some(Boolean) ? (
+              <ul>
+                {[result.date, result.vendor, result.net, result.vat, result.gross]
+                  .filter((candidate) => candidate !== null)
+                  .map((candidate) => (
+                    <li key={candidate.reason}>{candidate.reason}</li>
+                  ))}
+              </ul>
+            ) : (
+              <p>Es wurden keine passenden Werte gefunden.</p>
+            )}
+            <textarea className="receipt-raw-text" readOnly value={result.rawText} />
           </details>
 
           <div className="receipt-preview-actions">
