@@ -1,9 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('adds an expense row', async () => {
     render(<App />);
 
@@ -29,5 +33,26 @@ describe('App', () => {
     expect(
       await screen.findByText('Bitte korrigiere die markierten Felder, bevor die PDF erstellt wird.'),
     ).toBeInTheDocument();
+  });
+
+  it('moves to the next expense field with Enter', async () => {
+    render(<App />);
+
+    const dateField = screen.getByLabelText('Datum');
+    dateField.focus();
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getByLabelText('Beleg')).toHaveFocus();
+  });
+
+  it('adds a new expense row when tabbing after the last editable expense field', async () => {
+    render(<App />);
+
+    const vatField = screen.getByLabelText('MwSt.');
+    vatField.focus();
+    await userEvent.keyboard('{Tab}');
+
+    await waitFor(() => expect(screen.getByText('Ausgabe 2')).toBeInTheDocument());
+    expect(screen.getAllByLabelText('Datum')[1]).toHaveFocus();
   });
 });
