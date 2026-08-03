@@ -4,7 +4,7 @@ import type { ReceiptExtractionResult } from '../receiptImport/receiptExtraction
 import { extractReceiptData } from '../receiptImport/receiptExtraction';
 import { createDraftFromResult } from '../receiptImport/receiptDraft';
 import type { ReceiptImportDraft } from '../receiptImport/receiptDraft';
-import { getVatPlausibility } from '../receiptImport/vatValidation';
+import { getReceiptImportReview } from '../receiptImport/importReview';
 
 interface ReceiptImportProps {
   onApply: (draft: ReceiptImportDraft) => void;
@@ -39,7 +39,7 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
 
     return 'Unsicher erkannt';
   }, [result]);
-  const vatPlausibility = useMemo(() => (draft ? getVatPlausibility(draft) : null), [draft]);
+  const importReview = useMemo(() => (draft ? getReceiptImportReview(draft) : null), [draft]);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0];
@@ -150,8 +150,12 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
             </label>
           </div>
 
-          {vatPlausibility ? (
-            <p className={`receipt-vat-check is-${vatPlausibility.status}`}>{vatPlausibility.message}</p>
+          {importReview ? (
+            <p className={`receipt-import-check is-${importReview.status}`}>
+              <span className="receipt-import-light" aria-hidden="true" />
+              <strong>{importReview.label}</strong>
+              <span>{importReview.message}</span>
+            </p>
           ) : null}
 
           <details className="receipt-reasons">

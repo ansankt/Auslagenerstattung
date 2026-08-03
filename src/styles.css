@@ -2,6 +2,7 @@
 
 :root {
   --kult-red: #e12e2e;
+  --kult-red-dark: #9f1f1f;
   --kult-yellow: #f0bd51;
   --kult-green: #5da65c;
   --kult-purple: #100a28;
@@ -345,7 +346,10 @@ h2 {
 }
 
 .multi-receipt-row legend {
-  max-width: 100%;
+  display: flex;
+  max-width: min(100%, 460px);
+  align-items: center;
+  gap: 8px;
   padding: 0 6px;
   color: var(--text-muted);
   font-size: 0.9rem;
@@ -373,8 +377,11 @@ h2 {
   gap: 12px;
 }
 
-.receipt-vat-check {
+.receipt-import-check {
+  display: flex;
   grid-column: 1 / -1;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   border-radius: 8px;
   padding: 10px 12px;
@@ -382,16 +389,67 @@ h2 {
   font-weight: 700;
 }
 
-.receipt-vat-check.is-ok {
+.receipt-import-check.is-ok {
   border: 1px solid rgba(93, 166, 92, 0.35);
   background: rgba(93, 166, 92, 0.11);
   color: #2f6f2f;
 }
 
-.receipt-vat-check.is-warning {
+.receipt-import-check.is-warning,
+.receipt-import-confirmation {
+  border: 1px solid rgba(240, 189, 81, 0.55);
+  background: rgba(240, 189, 81, 0.14);
+  color: #846014;
+}
+
+.receipt-import-check.is-incomplete {
   border: 1px solid rgba(225, 46, 46, 0.24);
   background: rgba(225, 46, 46, 0.08);
   color: var(--kult-red-dark);
+}
+
+.receipt-import-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.receipt-import-badge.is-ok {
+  background: rgba(93, 166, 92, 0.14);
+  color: #2f6f2f;
+}
+
+.receipt-import-badge.is-warning {
+  background: rgba(240, 189, 81, 0.22);
+  color: #846014;
+}
+
+.receipt-import-badge.is-incomplete {
+  background: rgba(225, 46, 46, 0.1);
+  color: var(--kult-red-dark);
+}
+
+.receipt-import-light {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.receipt-import-confirmation {
+  display: grid;
+  gap: 4px;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .receipt-reasons {

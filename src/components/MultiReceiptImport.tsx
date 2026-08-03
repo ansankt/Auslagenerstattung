@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { createDraftFromResult } from '../receiptImport/receiptDraft';
 import type { ReceiptImportDraft } from '../receiptImport/receiptDraft';
-import { getVatPlausibility } from '../receiptImport/vatValidation';
+import { getReceiptImportReview } from '../receiptImport/importReview';
 
 interface MultiReceiptDraft {
   id: string;
@@ -21,6 +21,24 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [needsApplyConfirmation, setNeedsApplyConfirmation] = useState(false);
+  const importReviews = useMemo(
+    () => drafts.map((item) => ({ id: item.id, review: getReceiptImportReview(item.draft) })),
+    [drafts],
+  );
+  const reviewCounts = useMemo(
+    () =>
+      importReviews.reduce(
+        (counts, item) => ({
+          ok: counts.ok + (item.review.status === 'ok' ? 1 : 0),
+          warning: counts.warning + (item.review.status === 'warning' ? 1 : 0),
+          incomplete: counts.incomplete + (item.review.status === 'incomplete' ? 1 : 0),
+        }),
+        { ok: 0, warning: 0, incomplete: 0 },
+      ),
+    [importReviews],
+  );
+  const hasReviewIssues = reviewCounts.warning > 0 || reviewCounts.incomplete > 0;
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const files = Array.from(event.target.files ?? []);
@@ -34,6 +52,7 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
     setStatus('Belege werden vorbereitet');
     setError(null);
     setDrafts([]);
+    setNeedsApplyConfirmation(false);
 
     try {
       const { importReceiptDocuments } = await import('../receiptImport/documentImport');
@@ -60,12 +79,14 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
   };
 
   const handleDraftChange = (id: string, field: keyof ReceiptImportDraft, value: string): void => {
+    setNeedsApplyConfirmation(false);
     setDrafts((currentDrafts) =>
       currentDrafts.map((item) => (item.id === id ? { ...item, draft: { ...item.draft, [field]: value } } : item)),
     );
   };
 
   const handleRemove = (id: string): void => {
+    setNeedsApplyConfirmation(false);
     setDrafts((currentDrafts) => currentDrafts.filter((item) => item.id !== id));
   };
 
@@ -74,10 +95,16 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
       return;
     }
 
+    if (hasReviewIssues && !needsApplyConfirmation) {
+      setNeedsApplyConfirmation(true);
+      return;
+    }
+
     onApply(drafts.map((item) => item.draft));
     setDrafts([]);
     setStatus(null);
     setError(null);
+    setNeedsApplyConfirmation(false);
   };
 
   return (
@@ -107,16 +134,26 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
         <div className="multi-receipt-preview" aria-label="Import-Vorschau">
           <div className="receipt-preview-heading">
             <strong>{drafts.length} erkannte Belegposition(en)</strong>
-            <span>Vor dem Übernehmen prüfen</span>
+            <span>
+              {reviewCounts.ok} passt, {reviewCounts.warning} prüfen, {reviewCounts.incomplete} unvollständig
+            </span>
           </div>
 
           <div className="multi-receipt-table">
             {drafts.map((item) => {
-              const vatPlausibility = getVatPlausibility(item.draft);
+              const importReview = importReviews.find((reviewItem) => reviewItem.id === item.id)?.review;
 
               return (
                 <fieldset className="multi-receipt-row" key={item.id}>
-                  <legend>{item.source}</legend>
+                  <legend>
+                    <span>{item.source}</span>
+                    {importReview ? (
+                      <span className={`receipt-import-badge is-${importReview.status}`}>
+                        <span className="receipt-import-light" aria-hidden="true" />
+                        {importReview.label}
+                      </span>
+                    ) : null}
+                  </legend>
                   <label className="field">
                     <span>Datum</span>
                     <input
@@ -157,13 +194,27 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
                   <button className="danger-button multi-receipt-remove-button" type="button" onClick={() => handleRemove(item.id)}>
                     Entfernen
                   </button>
-                  {vatPlausibility ? (
-                    <p className={`receipt-vat-check is-${vatPlausibility.status}`}>{vatPlausibility.message}</p>
+                  {importReview ? (
+                    <p className={`receipt-import-check is-${importReview.status}`}>
+                      <span className="receipt-import-light" aria-hidden="true" />
+                      <strong>{importReview.label}</strong>
+                      <span>{importReview.message}</span>
+                    </p>
                   ) : null}
                 </fieldset>
               );
             })}
           </div>
+
+          {needsApplyConfirmation ? (
+            <div className="receipt-import-confirmation" role="alert">
+              <strong>Vor dem Übernehmen prüfen</strong>
+              <span>
+                {reviewCounts.warning + reviewCounts.incomplete} Belegposition(en) haben noch Hinweise. Klicke erneut auf
+                "Import übernehmen", wenn du sie trotzdem übernehmen möchtest.
+              </span>
+            </div>
+          ) : null}
 
           <div className="receipt-preview-actions">
             <button className="primary-button" type="button" onClick={handleApply}>
