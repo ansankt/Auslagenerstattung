@@ -2,28 +2,14 @@ import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { ReceiptExtractionResult } from '../receiptImport/receiptExtraction';
 import { extractReceiptData } from '../receiptImport/receiptExtraction';
-
-export interface ReceiptImportDraft {
-  date: string;
-  receipt: string;
-  description: string;
-  net: string;
-  vat: string;
-  gross: string;
-}
+import { createDraftFromResult, updateDraftTaxRow } from '../receiptImport/receiptDraft';
+import type { ReceiptImportDraft } from '../receiptImport/receiptDraft';
+import { getReceiptImportReview } from '../receiptImport/importReview';
+import { ReceiptTaxBreakdown } from './ReceiptTaxBreakdown';
 
 interface ReceiptImportProps {
   onApply: (draft: ReceiptImportDraft) => void;
 }
-
-const createDraftFromResult = (result: ReceiptExtractionResult, fileName: string): ReceiptImportDraft => ({
-  date: result.date?.value ?? '',
-  receipt: result.vendor?.value ?? fileName,
-  description: fileName,
-  net: result.net?.value === undefined ? '' : String(result.net.value),
-  vat: result.vat?.value === undefined ? '' : String(result.vat.value),
-  gross: result.gross?.value === undefined ? '' : String(result.gross.value),
-});
 
 export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -54,6 +40,7 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
 
     return 'Unsicher erkannt';
   }, [result]);
+  const importReview = useMemo(() => (draft ? getReceiptImportReview(draft) : null), [draft]);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0];
@@ -85,6 +72,14 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
 
   const handleDraftChange = (field: keyof ReceiptImportDraft, value: string): void => {
     setDraft((currentDraft) => (currentDraft ? { ...currentDraft, [field]: value } : currentDraft));
+  };
+
+  const handleTaxRowChange = (
+    rowId: string,
+    field: Parameters<typeof updateDraftTaxRow>[2],
+    value: string,
+  ): void => {
+    setDraft((currentDraft) => (currentDraft ? updateDraftTaxRow(currentDraft, rowId, field, value) : currentDraft));
   };
 
   const handleApply = (): void => {
@@ -163,6 +158,16 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
               <input value={draft.gross} onChange={(event) => handleDraftChange('gross', event.target.value)} />
             </label>
           </div>
+
+          {importReview ? (
+            <p className={`receipt-import-check is-${importReview.status}`}>
+              <span className="receipt-import-light" aria-hidden="true" />
+              <strong>{importReview.label}</strong>
+              <span>{importReview.message}</span>
+            </p>
+          ) : null}
+
+          <ReceiptTaxBreakdown rows={draft.taxRows} onChange={handleTaxRowChange} />
 
           <details className="receipt-reasons">
             <summary>Erkennung anzeigen</summary>

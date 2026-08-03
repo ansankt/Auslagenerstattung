@@ -22,6 +22,12 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Beleg erkennen' })).toBeInTheDocument();
   });
 
+  it('offers multi receipt import', () => {
+    render(<App />);
+
+    expect(screen.getByRole('button', { name: 'Belege importieren' })).toBeInTheDocument();
+  });
+
   it('shows bank fields when bank transfer is selected', async () => {
     render(<App />);
 

@@ -6,7 +6,7 @@ import type { ExpenseReport } from '../types/expense';
 import { calculateGross } from '../utils/calculations';
 import { formatCurrency, parseNumberInput } from '../utils/currency';
 import { ReceiptImport } from './ReceiptImport';
-import type { ReceiptImportDraft } from './ReceiptImport';
+import type { ReceiptImportDraft } from '../receiptImport/receiptDraft';
 import { FieldError } from './shared/FieldError';
 
 interface ExpenseRowProps {

@@ -7,10 +7,12 @@ import { PdfPreview } from './components/PdfPreview';
 import { PersonalData } from './components/PersonalData';
 import { Summary } from './components/Summary';
 import { generatePdf, downloadPdf } from './pdf/generatePdf';
+import type { ReceiptImportDraft } from './receiptImport/receiptDraft';
 import type { ExpenseReport } from './types/expense';
 import { calculateTotals } from './utils/calculations';
 import { createDefaultReport, createEmptyExpense } from './utils/defaultReport';
 import { createPdfFileName } from './utils/pdfFileName';
+import { parseNumberInput } from './utils/currency';
 import { clearExpenseReport, loadExpenseReport, saveExpenseReport } from './utils/storage';
 import { expenseReportSchema } from './validation/expenseReportSchema';
 
@@ -51,6 +53,35 @@ export const App = () => {
     }
   };
 
+  const handleImportExpenses = (drafts: ReceiptImportDraft[]): void => {
+    if (drafts.length === 0) {
+      return;
+    }
+
+    const importedExpenses = drafts.map((draft) => ({
+      id: crypto.randomUUID(),
+      date: draft.date,
+      receipt: draft.receipt,
+      description: draft.description,
+      net: parseNumberInput(draft.net),
+      vat: parseNumberInput(draft.vat),
+    }));
+    const hasOnlyEmptyDefaultExpense =
+      expenses.length === 1 &&
+      !expenses[0].date &&
+      !expenses[0].receipt &&
+      !expenses[0].description &&
+      expenses[0].net === 0 &&
+      expenses[0].vat === 0;
+
+    if (hasOnlyEmptyDefaultExpense) {
+      expenseFields.replace(importedExpenses);
+      return;
+    }
+
+    expenseFields.append(importedExpenses);
+  };
+
   const handlePdfDownload = handleSubmit(async (validReport) => {
     setPdfError(null);
     try {
@@ -83,6 +114,7 @@ export const App = () => {
             <ExpenseTable
               fields={expenseFields.fields}
               onAddExpense={handleAddExpense}
+              onImportExpenses={handleImportExpenses}
               onRemoveExpense={handleRemoveExpense}
             />
             <PaymentSection />

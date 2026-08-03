@@ -123,9 +123,13 @@ const renderImage = async (file: File): Promise<HTMLCanvasElement> => {
 };
 
 const renderPdfFirstPage = async (file: File): Promise<HTMLCanvasElement> => {
+  return renderPdfPage(file, 1);
+};
+
+const renderPdfPage = async (file: File, pageNumber: number): Promise<HTMLCanvasElement> => {
   const data = await file.arrayBuffer();
   const pdfDocument = await getDocument({ data }).promise;
-  const page = await pdfDocument.getPage(1);
+  const page = await pdfDocument.getPage(pageNumber);
   const viewport = page.getViewport({ scale: 2 });
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
@@ -141,7 +145,7 @@ const renderPdfFirstPage = async (file: File): Promise<HTMLCanvasElement> => {
   return preprocessCanvas(canvas);
 };
 
-const extractPdfText = async (file: File): Promise<string> => {
+export const extractPdfPageTexts = async (file: File): Promise<string[]> => {
   const data = await file.arrayBuffer();
   const pdfDocument = await getDocument({ data }).promise;
   const pageTexts: string[] = [];
@@ -157,7 +161,7 @@ const extractPdfText = async (file: File): Promise<string> => {
     pageTexts.push(pageText);
   }
 
-  return pageTexts.join('\n');
+  return pageTexts;
 };
 
 const getOcrSource = async (file: File): Promise<File | HTMLCanvasElement> => {
@@ -177,7 +181,9 @@ export const recognizeReceiptText = async (
   onProgress?: (progress: number) => void,
 ): Promise<string> => {
   if (file.type === 'application/pdf') {
-    const embeddedText = await extractPdfText(file).catch(() => '');
+    const embeddedText = await extractPdfPageTexts(file)
+      .then((pageTexts) => pageTexts.join('\n'))
+      .catch(() => '');
 
     if (embeddedText.trim().length >= minimumEmbeddedTextLength) {
       return embeddedText;
@@ -185,6 +191,30 @@ export const recognizeReceiptText = async (
   }
 
   const source = await getOcrSource(file);
+  const worker = await createWorker('deu+eng', 1, {
+    langPath: '/tessdata',
+    logger: (message) => {
+      if (message.status === 'recognizing text') {
+        onProgress?.(message.progress);
+      }
+    },
+  });
+
+  try {
+    const result = await worker.recognize(source);
+
+    return result.data.text;
+  } finally {
+    await worker.terminate();
+  }
+};
+
+export const recognizePdfPageText = async (
+  file: File,
+  pageNumber: number,
+  onProgress?: (progress: number) => void,
+): Promise<string> => {
+  const source = await renderPdfPage(file, pageNumber);
   const worker = await createWorker('deu+eng', 1, {
     langPath: '/tessdata',
     logger: (message) => {

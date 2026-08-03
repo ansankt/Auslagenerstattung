@@ -2,6 +2,7 @@
 
 :root {
   --kult-red: #e12e2e;
+  --kult-red-dark: #9f1f1f;
   --kult-yellow: #f0bd51;
   --kult-green: #5da65c;
   --kult-purple: #100a28;
@@ -269,6 +270,16 @@ h2 {
   justify-self: start;
 }
 
+.multi-receipt-import {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.multi-receipt-import > .secondary-button {
+  justify-self: start;
+}
+
 .receipt-status {
   display: grid;
   gap: 8px;
@@ -290,6 +301,62 @@ h2 {
   background: rgba(93, 166, 92, 0.08);
 }
 
+.multi-receipt-preview {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(225, 46, 46, 0.24);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(240, 189, 81, 0.12);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.multi-receipt-table {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.multi-receipt-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.multi-receipt-row .field {
+  min-width: 0;
+}
+
+.multi-receipt-row .amount-field input {
+  font-variant-numeric: tabular-nums;
+}
+
+.multi-receipt-remove-button {
+  align-self: end;
+  justify-self: start;
+  min-width: 108px;
+}
+
+.multi-receipt-row legend {
+  display: flex;
+  max-width: min(100%, 460px);
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .receipt-preview-heading,
 .receipt-preview-actions {
   display: flex;
@@ -308,6 +375,153 @@ h2 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.receipt-import-check {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.receipt-import-check.is-ok {
+  border: 1px solid rgba(93, 166, 92, 0.35);
+  background: rgba(93, 166, 92, 0.11);
+  color: #2f6f2f;
+}
+
+.receipt-import-check.is-warning,
+.receipt-import-confirmation {
+  border: 1px solid rgba(240, 189, 81, 0.55);
+  background: rgba(240, 189, 81, 0.14);
+  color: #846014;
+}
+
+.receipt-import-check.is-incomplete {
+  border: 1px solid rgba(225, 46, 46, 0.24);
+  background: rgba(225, 46, 46, 0.08);
+  color: var(--kult-red-dark);
+}
+
+.receipt-import-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.receipt-import-badge.is-ok {
+  background: rgba(93, 166, 92, 0.14);
+  color: #2f6f2f;
+}
+
+.receipt-import-badge.is-warning {
+  background: rgba(240, 189, 81, 0.22);
+  color: #846014;
+}
+
+.receipt-import-badge.is-incomplete {
+  background: rgba(225, 46, 46, 0.1);
+  color: var(--kult-red-dark);
+}
+
+.receipt-import-light {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.receipt-import-confirmation {
+  display: grid;
+  gap: 4px;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.receipt-tax-breakdown {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 10px;
+  border: 1px solid rgba(98, 91, 118, 0.22);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.receipt-tax-breakdown-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receipt-tax-breakdown-heading span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.receipt-tax-breakdown-grid,
+.receipt-tax-breakdown-row,
+.receipt-tax-breakdown-total {
+  display: grid;
+  grid-template-columns: 96px repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.receipt-tax-breakdown-grid > span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.receipt-tax-breakdown-row,
+.receipt-tax-breakdown-total {
+  grid-column: 1 / -1;
+}
+
+.receipt-tax-breakdown-row .field {
+  gap: 0;
+}
+
+.receipt-tax-breakdown-row .field span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.receipt-tax-breakdown-row input {
+  min-height: 42px;
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt-tax-breakdown-total {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  color: var(--kult-purple);
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .receipt-reasons {
@@ -443,6 +657,10 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .multi-receipt-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .receipt-preview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -466,6 +684,7 @@ h2 {
 
   .field-grid,
   .expense-row,
+  .multi-receipt-row,
   .segmented-control,
   .receipt-preview-grid {
     grid-template-columns: 1fr;
@@ -474,6 +693,33 @@ h2 {
   .receipt-preview-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .receipt-tax-breakdown-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .receipt-tax-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-tax-breakdown-grid > span {
+    display: none;
+  }
+
+  .receipt-tax-breakdown-row,
+  .receipt-tax-breakdown-total {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .receipt-tax-breakdown-row .field span {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
   }
 
   .panel {
