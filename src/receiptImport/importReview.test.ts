@@ -9,6 +9,7 @@ const createDraft = (partialDraft: Partial<ReceiptImportDraft>): ReceiptImportDr
   net: '38.66',
   vat: '7.35',
   gross: '46.01',
+  taxRows: [],
   ...partialDraft,
 });
 

@@ -2,9 +2,10 @@ import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { ReceiptExtractionResult } from '../receiptImport/receiptExtraction';
 import { extractReceiptData } from '../receiptImport/receiptExtraction';
-import { createDraftFromResult } from '../receiptImport/receiptDraft';
+import { createDraftFromResult, updateDraftTaxRow } from '../receiptImport/receiptDraft';
 import type { ReceiptImportDraft } from '../receiptImport/receiptDraft';
 import { getReceiptImportReview } from '../receiptImport/importReview';
+import { ReceiptTaxBreakdown } from './ReceiptTaxBreakdown';
 
 interface ReceiptImportProps {
   onApply: (draft: ReceiptImportDraft) => void;
@@ -71,6 +72,14 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
 
   const handleDraftChange = (field: keyof ReceiptImportDraft, value: string): void => {
     setDraft((currentDraft) => (currentDraft ? { ...currentDraft, [field]: value } : currentDraft));
+  };
+
+  const handleTaxRowChange = (
+    rowId: string,
+    field: Parameters<typeof updateDraftTaxRow>[2],
+    value: string,
+  ): void => {
+    setDraft((currentDraft) => (currentDraft ? updateDraftTaxRow(currentDraft, rowId, field, value) : currentDraft));
   };
 
   const handleApply = (): void => {
@@ -157,6 +166,8 @@ export const ReceiptImport = ({ onApply }: ReceiptImportProps) => {
               <span>{importReview.message}</span>
             </p>
           ) : null}
+
+          <ReceiptTaxBreakdown rows={draft.taxRows} onChange={handleTaxRowChange} />
 
           <details className="receipt-reasons">
             <summary>Erkennung anzeigen</summary>

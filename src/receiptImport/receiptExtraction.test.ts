@@ -158,7 +158,8 @@ describe('extractReceiptData', () => {
 
     expect(result.vendor?.value).toBe('FRISTO');
     expect(result.date?.value).toBe('2026-07-31');
-    expect(result.vat?.value).toBe(7.55);
+    expect(result.net?.value).toBe(38.66);
+    expect(result.vat?.value).toBe(7.35);
     expect(result.gross?.value).toBe(46.01);
   });
 
@@ -188,6 +189,50 @@ describe('extractReceiptData', () => {
     `);
 
     expect(result.date?.value).toBe('2026-07-31');
+    expect(result.net?.value).toBe(22.26);
+    expect(result.vat?.value).toBe(1.56);
+    expect(result.gross?.value).toBe(23.82);
+  });
+
+  it('handles real OCR text from scanned Lidl receipts with damaged summary rows', () => {
+    const result = extractReceiptData(`
+      U \\' Starnberger Straße 38
+      P 82131 Gauting
+      > EUR
+      Sonnenblumenöl 1,79 x 8 14,32 A
+      Brötchen Weizen 0,19 x 10 1,904
+      Brötchen Kaiser 0,19 x 40 7,60 A
+      zu zahlen 23,82
+      Karte 23,82
+      MWSTX MWST + Netto = Brutto
+      A 7% 1,56 22,26 23,82
+      Sune  1S6 2,26 23,62
+      i {ade dir die Lid] Plus App herunter |
+      3612 wii 31.07.26 15:47
+      K-U-N-D-E-N-B-E-L-E-G
+      Betrag 23,82 EUR
+      31.07.2026 15:47 T-ID 60162672
+    `);
+
+    expect(result.vendor?.value).toBe('LIDL');
+    expect(result.date?.value).toBe('2026-07-31');
+    expect(result.net?.value).toBe(22.26);
+    expect(result.vat?.value).toBe(1.56);
+    expect(result.gross?.value).toBe(23.82);
+  });
+
+  it('handles Lidl tax table rows split across OCR lines', () => {
+    const result = extractReceiptData(`
+      LIDL
+      zu zahlen 23,82
+      MWSTX MWST + Netto = Brutto
+      A 7%
+      1,56 22,26 23,82
+      Sune  1S6 2,26 23,62
+      31.07.26 15:47
+    `);
+
+    expect(result.net?.value).toBe(22.26);
     expect(result.vat?.value).toBe(1.56);
     expect(result.gross?.value).toBe(23.82);
   });
@@ -205,6 +250,43 @@ describe('extractReceiptData', () => {
 
     expect(result.vendor?.value).toBe('EDEKA');
     expect(result.date?.value).toBe('2026-07-31');
+    expect(result.net?.value).toBe(21.74);
+    expect(result.vat?.value).toBe(1.55);
+    expect(result.gross?.value).toBe(23.29);
+    expect(result.taxRows).toEqual([
+      expect.objectContaining({ rate: 7, net: 21.49, vat: 1.5, gross: 22.99 }),
+      expect.objectContaining({ rate: 19, net: 0.25, vat: 0.05, gross: 0.3 }),
+    ]);
+  });
+
+  it('uses arithmetic to parse tax table rows when OCR damages the header order', () => {
+    const result = extractReceiptData(`
+      LIDL
+      zu zahlen 23,82
+      MHSIX irgendwas Tabelle
+      A 7% 1,56 22,26 23,82
+      31.07.2026 15:47
+    `);
+
+    expect(result.net?.value).toBe(22.26);
+    expect(result.vat?.value).toBe(1.56);
+    expect(result.gross?.value).toBe(23.82);
+  });
+
+  it('repairs OCR-damaged VAT values when net and gross still match the tax rate', () => {
+    const result = extractReceiptData(`
+      EDEKA
+      SUMME € 23,29
+      EC-Cash € 23,29
+      Must NETTO MwSt UMSATZ
+      A Th 21,49 1,90 22,99
+      B 19% 0,25 0,05 0,30
+      Datum 31.07.26 16:00 Uhr
+    `);
+
+    expect(result.vendor?.value).toBe('EDEKA');
+    expect(result.date?.value).toBe('2026-07-31');
+    expect(result.net?.value).toBe(21.74);
     expect(result.vat?.value).toBe(1.55);
     expect(result.gross?.value).toBe(23.29);
   });

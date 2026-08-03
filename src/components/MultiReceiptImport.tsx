@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { createDraftFromResult } from '../receiptImport/receiptDraft';
+import { createDraftFromResult, updateDraftTaxRow } from '../receiptImport/receiptDraft';
 import type { ReceiptImportDraft } from '../receiptImport/receiptDraft';
 import { getReceiptImportReview } from '../receiptImport/importReview';
+import { ReceiptTaxBreakdown } from './ReceiptTaxBreakdown';
 
 interface MultiReceiptDraft {
   id: string;
@@ -82,6 +83,20 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
     setNeedsApplyConfirmation(false);
     setDrafts((currentDrafts) =>
       currentDrafts.map((item) => (item.id === id ? { ...item, draft: { ...item.draft, [field]: value } } : item)),
+    );
+  };
+
+  const handleTaxRowChange = (
+    id: string,
+    rowId: string,
+    field: Parameters<typeof updateDraftTaxRow>[2],
+    value: string,
+  ): void => {
+    setNeedsApplyConfirmation(false);
+    setDrafts((currentDrafts) =>
+      currentDrafts.map((item) =>
+        item.id === id ? { ...item, draft: updateDraftTaxRow(item.draft, rowId, field, value) } : item,
+      ),
     );
   };
 
@@ -201,6 +216,10 @@ export const MultiReceiptImport = ({ onApply }: MultiReceiptImportProps) => {
                       <span>{importReview.message}</span>
                     </p>
                   ) : null}
+                  <ReceiptTaxBreakdown
+                    rows={item.draft.taxRows}
+                    onChange={(rowId, field, value) => handleTaxRowChange(item.id, rowId, field, value)}
+                  />
                 </fieldset>
               );
             })}

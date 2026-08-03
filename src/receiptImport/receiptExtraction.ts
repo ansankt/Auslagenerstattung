@@ -14,6 +14,7 @@ export interface ReceiptExtractionResult {
   net: ReceiptExtractionCandidate<number> | null;
   vat: ReceiptExtractionCandidate<number> | null;
   gross: ReceiptExtractionCandidate<number> | null;
+  taxRows: ReceiptTaxTableRow[];
   rawText: string;
 }
 
@@ -21,6 +22,14 @@ interface AmountCandidate {
   amount: number;
   line: string;
   lineIndex: number;
+}
+
+export interface ReceiptTaxTableRow {
+  rate: number;
+  net: number;
+  vat: number;
+  gross: number;
+  line: string;
 }
 
 const datePattern = /\b(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})\b/;
@@ -99,7 +108,10 @@ const parseDate = (value: string): string | null => {
 };
 
 const parseAmount = (value: string): number => {
-  const normalizedValue = value.replace(/\s/g, '').replace(/\./g, '').replace(',', '.').replace('€', '');
+  const compactValue = value.replace(/\s/g, '').replace('€', '').replace(/eur/i, '');
+  const normalizedValue = compactValue.includes(',')
+    ? compactValue.replace(/\./g, '').replace(',', '.')
+    : compactValue.replace(/\.(?=\d{3}(?:\D|$))/g, '');
 
   return roundMoney(Number(normalizedValue));
 };
@@ -210,27 +222,206 @@ const collectAmountCandidates = (lines: string[]): AmountCandidate[] =>
 
 const collectLineAmounts = (line: string): number[] => collectAmountCandidates([line]).map((candidate) => candidate.amount);
 
-const getVatAmountFromTaxTableRow = (line: string, header: string | null): number | null => {
-  const amounts = collectLineAmounts(line);
+const getTaxRateFromLine = (line: string, amounts: number[]): number | null => {
+  const explicitRateMatch = line.match(/(?:^|\s|[A-Z][.\s]+)(0|7|19)(?:[,.]00)?\s*%/i);
 
-  if (amounts.length < 3) {
+  if (explicitRateMatch) {
+    return Number(explicitRateMatch[1]);
+  }
+
+  if (/(?:^|\s)[A-Z][.\s]+(?:7|t|th)(?:\s|$)/i.test(line)) {
+    return 7;
+  }
+
+  const firstAmount = amounts[0];
+
+  return firstAmount !== undefined && [0, 7, 19].includes(firstAmount) ? firstAmount : null;
+};
+
+const getTaxRowAmounts = (line: string): { rate: number; amounts: number[] } | null => {
+  const amounts = collectLineAmounts(line);
+  const rate = getTaxRateFromLine(line, amounts);
+
+  if (rate === null) {
     return null;
   }
 
+  const rowAmounts = amounts[0] === rate && amounts.length >= 4 ? amounts.slice(1) : amounts;
+
+  return rowAmounts.length >= 3 ? { rate, amounts: rowAmounts } : null;
+};
+
+const scoreTaxAmountCombination = (rate: number, net: number, vat: number, gross: number): number =>
+  Math.abs(roundMoney(net * (rate / 100)) - roundMoney(vat)) + Math.abs(roundMoney(net + vat) - roundMoney(gross));
+
+const repairTaxTableRow = (row: ReceiptTaxTableRow): ReceiptTaxTableRow | null => {
+  const expectedVatFromNet = roundMoney(row.net * (row.rate / 100));
+  const expectedVatFromGross = roundMoney(row.gross - row.net);
+
+  if (expectedVatFromNet === expectedVatFromGross) {
+    return {
+      ...row,
+      vat: expectedVatFromGross,
+    };
+  }
+
+  const expectedNetFromGross = roundMoney(row.gross / (1 + row.rate / 100));
+
+  if (expectedNetFromGross === row.net) {
+    return {
+      ...row,
+      vat: roundMoney(row.gross - row.net),
+    };
+  }
+
+  const expectedGrossFromNet = roundMoney(row.net + row.vat);
+
+  if (roundMoney(row.net * (row.rate / 100)) === row.vat && expectedGrossFromNet !== row.gross) {
+    return {
+      ...row,
+      gross: expectedGrossFromNet,
+    };
+  }
+
+  return null;
+};
+
+const parseTaxTableRow = (line: string, header: string | null): ReceiptTaxTableRow | null => {
+  const row = getTaxRowAmounts(line);
+
+  if (!row) {
+    return null;
+  }
+
+  const { rate, amounts } = row;
   const normalizedHeader = header ? normalizeForSearch(header) : '';
   const nettoIndex = normalizedHeader.indexOf('netto');
   const vatIndex = Math.max(normalizedHeader.lastIndexOf('mwst'), normalizedHeader.lastIndexOf('mhst'));
   const grossIndex = Math.max(normalizedHeader.indexOf('brutto'), normalizedHeader.indexOf('umsatz'));
+  const headerOrderedAmounts = amounts.length >= 3 ? amounts.slice(-3) : amounts;
+  let headerCandidate: ReceiptTaxTableRow | null = null;
 
   if (nettoIndex >= 0 && vatIndex >= 0 && grossIndex >= 0 && nettoIndex < vatIndex && vatIndex < grossIndex) {
-    return amounts[amounts.length - 2];
+    headerCandidate = {
+      rate,
+      net: headerOrderedAmounts[0],
+      vat: headerOrderedAmounts[1],
+      gross: headerOrderedAmounts[2],
+      line,
+    };
+  }
+
+  if (vatIndex >= 0 && nettoIndex >= 0 && grossIndex >= 0 && vatIndex < nettoIndex && nettoIndex < grossIndex) {
+    headerCandidate = {
+      rate,
+      vat: headerOrderedAmounts[0],
+      net: headerOrderedAmounts[1],
+      gross: headerOrderedAmounts[2],
+      line,
+    };
   }
 
   if (vatIndex >= 0 && grossIndex >= 0 && nettoIndex >= 0 && vatIndex < grossIndex && grossIndex < nettoIndex) {
-    return amounts[0];
+    headerCandidate = {
+      rate,
+      vat: headerOrderedAmounts[0],
+      gross: headerOrderedAmounts[1],
+      net: headerOrderedAmounts[2],
+      line,
+    };
   }
 
-  return amounts.length >= 4 ? amounts[amounts.length - 2] : amounts[0];
+  const mathCandidates = amounts.flatMap((net, netIndex) =>
+    amounts.flatMap((vat, vatIndexCandidate) =>
+      amounts
+        .map((gross, grossIndexCandidate) => ({ net, vat, gross, grossIndexCandidate }))
+        .filter(
+          ({ grossIndexCandidate }) =>
+            netIndex !== vatIndexCandidate && netIndex !== grossIndexCandidate && vatIndexCandidate !== grossIndexCandidate,
+        ),
+    ),
+  );
+  const bestMathCandidate = mathCandidates
+    .map((candidate) => ({
+      ...candidate,
+      score: scoreTaxAmountCombination(rate, candidate.net, candidate.vat, candidate.gross),
+    }))
+    .sort((a, b) => a.score - b.score)[0];
+
+  if (bestMathCandidate && bestMathCandidate.score <= 0.02) {
+    return {
+      rate,
+      net: bestMathCandidate.net,
+      vat: bestMathCandidate.vat,
+      gross: bestMathCandidate.gross,
+      line,
+    };
+  }
+
+  if (headerCandidate && scoreTaxAmountCombination(rate, headerCandidate.net, headerCandidate.vat, headerCandidate.gross) <= 0.02) {
+    return headerCandidate;
+  }
+
+  return headerCandidate ? repairTaxTableRow(headerCandidate) : null;
+};
+
+const getTaxTableRows = (lines: string[]): ReceiptTaxTableRow[] => {
+  let currentTaxHeader: string | null = null;
+  const rows: ReceiptTaxTableRow[] = [];
+
+  for (const [lineIndex, line] of lines.entries()) {
+    if (includesKeyword(line, ['mwst', 'mhst']) && includesKeyword(line, ['netto', 'nett', 'brutto', 'umsatz'])) {
+      currentTaxHeader = line;
+    }
+
+    const row = parseTaxTableRow(line, currentTaxHeader);
+
+    if (row) {
+      rows.push(row);
+      continue;
+    }
+
+    const amounts = collectLineAmounts(line);
+
+    if (getTaxRateFromLine(line, amounts) === null) {
+      continue;
+    }
+
+    const continuedLine = [line, ...lines.slice(lineIndex + 1, lineIndex + 3)].join(' ');
+    const continuedRow = parseTaxTableRow(continuedLine, currentTaxHeader);
+
+    if (continuedRow) {
+      rows.push(continuedRow);
+    }
+  }
+
+  return rows;
+};
+
+const getTaxTableSummary = (
+  rows: ReceiptTaxTableRow[],
+): Pick<ReceiptExtractionResult, 'net' | 'vat' | 'gross'> | null => {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return {
+    net: {
+      value: roundMoney(rows.reduce((sum, row) => sum + row.net, 0)),
+      confidence: 0.84,
+      reason: `Netto aus Steuertabelle berechnet: ${rows.map((row) => `"${row.line}"`).join(', ')}`,
+    },
+    vat: {
+      value: roundMoney(rows.reduce((sum, row) => sum + row.vat, 0)),
+      confidence: 0.86,
+      reason: `MwSt. aus Steuertabelle berechnet: ${rows.map((row) => `"${row.line}"`).join(', ')}`,
+    },
+    gross: {
+      value: roundMoney(rows.reduce((sum, row) => sum + row.gross, 0)),
+      confidence: 0.84,
+      reason: `Brutto aus Steuertabelle berechnet: ${rows.map((row) => `"${row.line}"`).join(', ')}`,
+    },
+  };
 };
 
 const findAmountByKeyword = (
@@ -286,28 +477,13 @@ const findVatAmount = (lines: string[], keywords: string[]): ReceiptExtractionCa
     };
   }
 
-  let currentTaxHeader: string | null = null;
-  const vatTableRows = lines
-    .map((line) => {
-      if (includesKeyword(line, ['mwst', 'mhst']) && includesKeyword(line, ['netto', 'nett', 'brutto', 'umsatz'])) {
-        currentTaxHeader = line;
-      }
-
-      if (!/(?:^|\s)[A-Z]{1,2}[.\s]+(?:7|19)(?:[,.]00)?\s*%?/.test(line)) {
-        return null;
-      }
-
-      const amount = getVatAmountFromTaxTableRow(line, currentTaxHeader);
-
-      return amount === null ? null : { amount, line, lineIndex: 0 };
-    })
-    .filter((candidate): candidate is AmountCandidate => candidate !== null);
+  const vatTableRows = getTaxTableRows(lines);
 
   if (vatTableRows.length > 0) {
     return {
-      value: roundMoney(vatTableRows.reduce((sum, candidate) => sum + candidate.amount, 0)),
-      confidence: 0.78,
-      reason: `MwSt. aus Steuertabelle erkannt: ${vatTableRows.map((candidate) => `"${candidate.line}"`).join(', ')}`,
+      value: roundMoney(vatTableRows.reduce((sum, row) => sum + row.vat, 0)),
+      confidence: 0.86,
+      reason: `MwSt. aus Steuertabelle berechnet: ${vatTableRows.map((row) => `"${row.line}"`).join(', ')}`,
     };
   }
 
@@ -323,12 +499,10 @@ const findVatAmount = (lines: string[], keywords: string[]): ReceiptExtractionCa
     const nextTaxTableLine = lines
       .slice(lineIndex + 1, lineIndex + 4)
       .find((line) => /(?:^|\s)?(?:[A-Z]{1,2}[.\s]+)?(?:7|19)(?:[,.]00)?\s*%/.test(line));
-    const nextTaxTableAmount = nextTaxTableLine
-      ? getVatAmountFromTaxTableRow(nextTaxTableLine, lines[lineIndex])
-      : null;
+    const nextTaxTableRow = nextTaxTableLine ? parseTaxTableRow(nextTaxTableLine, lines[lineIndex]) : null;
 
-    if (nextTaxTableAmount !== null) {
-      return { amount: nextTaxTableAmount, line: nextTaxTableLine ?? lines[lineIndex], lineIndex };
+    if (nextTaxTableRow !== null) {
+      return { amount: nextTaxTableRow.vat, line: nextTaxTableLine ?? lines[lineIndex], lineIndex };
     }
 
     const blockLines = [lines[lineIndex]];
@@ -473,15 +647,18 @@ export const extractReceiptData = (
   const lines = buildNormalizedLines(rawText);
   const date = extractDate(lines, rules);
   const vendor = extractVendor(lines, rules);
-  const net = findAmountByKeyword(lines, rules.amountKeywords.net, 'Netto');
-  const vat = findVatAmount(lines, rules.amountKeywords.vat);
-  const gross = findAmountByKeyword(lines, rules.amountKeywords.gross, 'Brutto') ?? getHighestAmount(lines);
+  const taxRows = getTaxTableRows(lines);
+  const taxTableSummary = getTaxTableSummary(taxRows);
+  const net = taxTableSummary?.net ?? findAmountByKeyword(lines, rules.amountKeywords.net, 'Netto');
+  const vat = taxTableSummary?.vat ?? findVatAmount(lines, rules.amountKeywords.vat);
+  const gross = taxTableSummary?.gross ?? findAmountByKeyword(lines, rules.amountKeywords.gross, 'Brutto') ?? getHighestAmount(lines);
   const amounts = deriveMissingAmounts(net, vat, gross, rules);
 
   return {
     date,
     vendor,
     ...amounts,
+    taxRows,
     rawText,
   };
 };

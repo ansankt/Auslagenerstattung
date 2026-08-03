@@ -21,7 +21,7 @@ export const defaultReceiptRules: ReceiptExtractionRules = {
   knownVendors: [
     { name: 'FRISTO', keywords: ['fristo'] },
     { name: 'Backstube Wünsche', keywords: ['backstube wuensche', 'backstube wünsche', 'wuensche', 'wünsche'] },
-    { name: 'LIDL', keywords: ['lidl'] },
+    { name: 'LIDL', keywords: ['lidl', 'lid]'] },
     { name: 'EDEKA', keywords: ['edeka'] },
   ],
   vendorLines: {
